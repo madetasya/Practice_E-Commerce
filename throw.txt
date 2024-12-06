@@ -1,0 +1,135 @@
+'use server'
+import { ProductType } from "./type";
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+
+export async function getProduction() {
+  const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/products", {
+    cache: "no-store",
+    next: {
+      tags: ["product"],
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fecth data product");
+  }
+  const products: ProductType[] = await response.json();
+
+  return products;
+}
+
+export async function getSlug(slug: string): Promise<ProductType> {
+  const data = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${slug}`, {
+    cache: "no-store",
+  });
+  if (!data.ok) {
+    throw new Error(`Response status: ${data.status}`);
+  }
+  const products: ProductType = await data.json();
+
+  return products;
+}
+
+export async function createUser(formData: FormData) {
+  const name = formData.get("name") as string;
+  const username = formData.get("username") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  const data = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/register`, {
+    method: "POST",
+    body: JSON.stringify({
+      name,
+      username,
+      email,
+      password,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  console.log({ name, username, email, password });
+  console.log(await data.json());
+  // revalidateTag("product");
+  redirect("/login");
+}
+
+export async function loginUser(formData: FormData) {
+  const body = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
+
+  await new Promise((r) => setTimeout(r, 2000));
+  const data = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/login`, {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const response = (await data.json()) as {
+    accessToken?: string;
+    message?: string;
+  };
+  if (!data.ok) {
+    redirect(`/login?error=${response.message}`);
+  }
+  cookies().set("Authorization", `Bearer ${response.accessToken}`);
+  redirect("/");
+}
+
+export async function getWishlist() {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/wishlist`, {
+    cache: "no-store",
+    headers: {
+      Cookie: cookies().toString()
+    },
+    
+  });
+ 
+  
+  if (!response.ok) {
+    console.log(response)
+    throw new Error("Failed to fecth data wishlist");
+  }
+  const wishlist: ProductType[] = await response.json();
+
+  return wishlist;
+}
+
+export async function addWishlist(productId: string) {
+ 
+  
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/wishlist/${productId}`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Cookie: cookies().toString()
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fecth data wishlist");
+  }
+
+}
+export async function deleteWishlist(id: string) {
+  // console.log(id,"ini iddlete");
+  
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/wishlist/${id}`, {
+    method: "DELETE",
+    cache: "no-store",
+    headers: {
+      Cookie: cookies().toString()
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fecth data wishlist");
+  }
+ 
+}
